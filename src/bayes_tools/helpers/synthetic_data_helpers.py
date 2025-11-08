@@ -133,30 +133,33 @@ def aggregate_to_parent(
     key = "site_id" if level == "site" else "region_id"
     df = df.copy()
 
-    # Mark wave months where survey exists at least for one OU
-    df["is_wave"] = df["survey_score"].notna()
+    def summarise(group: pd.DataFrame) -> pd.Series:
+        respondents = group["n_respondents"].dropna()
+        respondents_sum = respondents.sum() if not respondents.empty else np.nan
 
-    # Aggregations (monthly)
-    def weighted_mean_survey(g):
-        # Weighted mean only over rows with survey; else NaN
-        mask = g["survey_score"].notna() & g["n_respondents"].notna()
-        if not mask.any():
-            return np.nan
-        return np.average(
-            g.loc[mask, "survey_score"], weights=g.loc[mask, "n_respondents"]
+        mask = group["survey_score"].notna() & group["n_respondents"].notna()
+        if mask.any():
+            survey = float(
+                np.average(
+                    group.loc[mask, "survey_score"],
+                    weights=group.loc[mask, "n_respondents"],
+                )
+            )
+        else:
+            survey = np.nan
+
+        return pd.Series(
+            {
+                "productivity": group["productivity"].sum(),
+                "fte_operational": group["fte_operational"].sum(),
+                "n_respondents": respondents_sum,
+                "survey_score": survey,
+            }
         )
 
-    agg = df.groupby([key, "date"], as_index=False).agg(
-        productivity=("productivity", "sum"),
-        fte_operational=("fte_operational", "sum"),
-        # respondents sum (only at wave rows)
-        n_respondents=(
-            "n_respondents",
-            lambda x: x.dropna().sum() if x.notna().any() else np.nan,
-        ),
-        # respondent-weighted mean for survey
-        survey_score=("survey_score", weighted_mean_survey),
+    agg = (
+        df.groupby([key, "date"], sort=False)
+        .apply(summarise, include_groups=False)
+        .reset_index()
     )
-
-    agg = agg.rename(columns={key: f"{level}_id"})
-    return agg
+    return agg.rename(columns={key: f"{level}_id"})
