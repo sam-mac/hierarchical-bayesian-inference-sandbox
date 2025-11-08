@@ -20,6 +20,7 @@ dependencies = [
     "seaborn",
     "tqdm",
     "jupyter",
+    "plotly>=6.4.0",
 ]
 
 [project.optional-dependencies]
