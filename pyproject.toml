@@ -22,9 +22,18 @@ dependencies = [
     "jupyter",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "ipykernel",
+  "pre-commit"
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v"
+pythonpath = ["src"] 
+
 
 [tool.black]
 line-length = 88

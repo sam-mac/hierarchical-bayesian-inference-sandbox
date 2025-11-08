@@ -1,14 +1,15 @@
 import numpy as np
 import pandas as pd
 
+
 def make_hierarchical_ou_dataset(
     n_regions: int = 3,
     n_sites_per_region: int = 3,
     n_ous_per_site: int = 4,
     n_years: int = 3,
     wave_months=(6, 12),
-    wave_missing_prob: float = 0.1,# chance a given OU skips a wave (simulate missingness)
-    seed: int = 42
+    wave_missing_prob: float = 0.1,  # chance a given OU skips a wave (simulate missingness)
+    seed: int = 42,
 ) -> pd.DataFrame:
     """
     Build a monthly hierarchical panel:
@@ -41,11 +42,11 @@ def make_hierarchical_ou_dataset(
 
                 # OU-specific baseline and drift
                 base_level = rng.normal(100, 20)  # baseline productivity level
-                ou_eff = rng.normal(0.0, 0.07)    # OU deviation (log scale)
+                ou_eff = rng.normal(0.0, 0.07)  # OU deviation (log scale)
                 drift = rng.normal(0.003, 0.001)  # slow upward trend
 
                 # Mild seasonality (shared pattern across all groups)
-                season = np.sin(np.linspace(0, 2*np.pi, 12))
+                season = np.sin(np.linspace(0, 2 * np.pi, 12))
 
                 prod = np.empty(len(months))
                 fte = np.empty(len(months))
@@ -81,36 +82,42 @@ def make_hierarchical_ou_dataset(
                                 + rng.normal(0, 2.5)
                             )
                             # Respondents depend on FTE (cap and ensure integer)
-                            nresp[t] = int(np.clip(rng.normal(0.25 * fte[t], 6), 10, 120))
+                            nresp[t] = int(
+                                np.clip(rng.normal(0.25 * fte[t], 6), 10, 120)
+                            )
 
                 # Append rows
                 for t, month in enumerate(months):
-                    data.append({
-                        "region_id": region_id,
-                        "site_id": site_id,
-                        "ou_code": ou_code,
-                        "date": month,
-                        "productivity": float(prod[t]),
-                        "fte_operational": float(fte[t]),
-                        "survey_score": (None if np.isnan(survey[t]) else float(survey[t])),
-                        "n_respondents": (None if np.isnan(nresp[t]) else int(nresp[t]))
-                    })
+                    data.append(
+                        {
+                            "region_id": region_id,
+                            "site_id": site_id,
+                            "ou_code": ou_code,
+                            "date": month,
+                            "productivity": float(prod[t]),
+                            "fte_operational": float(fte[t]),
+                            "survey_score": (
+                                None if np.isnan(survey[t]) else float(survey[t])
+                            ),
+                            "n_respondents": (
+                                None if np.isnan(nresp[t]) else int(nresp[t])
+                            ),
+                        }
+                    )
 
     df = pd.DataFrame(data)
     # Ensure month start (useful if your downstream code expects this)
     df["date"] = (
-        pd.to_datetime(df["date"])
-        .dt.to_period("M")
-        .to_timestamp(how="start")
+        pd.to_datetime(df["date"]).dt.to_period("M").dt.to_timestamp(how="start")
     )
     return df
 
 
 # --- Optional: convenience aggregator to parent levels (site or region) ---
 
+
 def aggregate_to_parent(
-    df: pd.DataFrame,
-    level: str = "site"  # "site" or "region"
+    df: pd.DataFrame, level: str = "site"  # "site" or "region"
 ) -> pd.DataFrame:
     """
     Aggregate OU-level monthly data to site or region level.
@@ -135,18 +142,20 @@ def aggregate_to_parent(
         mask = g["survey_score"].notna() & g["n_respondents"].notna()
         if not mask.any():
             return np.nan
-        return np.average(g.loc[mask, "survey_score"], weights=g.loc[mask, "n_respondents"])
+        return np.average(
+            g.loc[mask, "survey_score"], weights=g.loc[mask, "n_respondents"]
+        )
 
-    agg = (
-        df.groupby([key, "date"], as_index=False)
-          .agg(
-              productivity=("productivity", "sum"),
-              fte_operational=("fte_operational", "sum"),
-              # respondents sum (only at wave rows)
-              n_respondents=("n_respondents", lambda x: x.dropna().sum() if x.notna().any() else np.nan),
-              # respondent-weighted mean for survey
-              survey_score=("survey_score", weighted_mean_survey),
-          )
+    agg = df.groupby([key, "date"], as_index=False).agg(
+        productivity=("productivity", "sum"),
+        fte_operational=("fte_operational", "sum"),
+        # respondents sum (only at wave rows)
+        n_respondents=(
+            "n_respondents",
+            lambda x: x.dropna().sum() if x.notna().any() else np.nan,
+        ),
+        # respondent-weighted mean for survey
+        survey_score=("survey_score", weighted_mean_survey),
     )
 
     agg = agg.rename(columns={key: f"{level}_id"})
