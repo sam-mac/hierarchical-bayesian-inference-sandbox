@@ -1,0 +1,25 @@
+{
+  // Core: use Pylance for real signatures
+  "python.languageServer": "Pylance",
+
+  // Reduce noisy/incorrect param insertions
+  "python.analysis.completeFunctionParens": false,
+  "editor.parameterHints.enabled": true,
+  "editor.suggest.showSnippets": false,
+  "python.analysis.autoImportCompletions": false,
+
+  // Be stricter so bad names get flagged quickly
+  "python.analysis.typeCheckingMode": "basic",
+
+  // Copilot: keep globally on, but turn it off for Python so completions come from Pylance
+  "github.copilot.enable": {
+    "*": true,
+    "python": true,
+    "markdown": false,
+    "plaintext": false,
+    "scminput": false
+  },
+
+  // Disable inline ghost text for Python as well (Copilot used that surface)
+  "editor.inlineSuggest.enabled": false
+}
