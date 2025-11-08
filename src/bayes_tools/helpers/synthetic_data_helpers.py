@@ -159,7 +159,7 @@ def aggregate_to_parent(
 
     agg = (
         df.groupby([key, "date"], sort=False)
-        .apply(summarise, include_groups=False)
+        .apply(summarise, include_groups=False) # pyright: ignore[reportCallIssue]
         .reset_index()
     )
     return agg.rename(columns={key: f"{level}_id"})
