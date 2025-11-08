@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -49,3 +50,73 @@ def test_aggregate_to_parent_region_level(synthetic_panel: pd.DataFrame) -> None
 def test_aggregate_to_parent_invalid_level(synthetic_panel: pd.DataFrame) -> None:
     with pytest.raises(ValueError, match="level must be 'site' or 'region'"):
         aggregate_to_parent(synthetic_panel, level="invalid")
+
+
+def test_make_hierarchical_ou_dataset_wave_month_control() -> None:
+    panel = make_hierarchical_ou_dataset(
+        n_regions=1,
+        n_sites_per_region=1,
+        n_ous_per_site=1,
+        n_years=1,
+        wave_months=(3,),
+        wave_missing_prob=0.0,
+        seed=123,
+    )
+
+    march_rows = panel[panel["date"].dt.month == 3]
+    non_march_rows = panel[panel["date"].dt.month != 3]
+
+    assert not march_rows.empty
+    assert march_rows["survey_score"].notna().all()
+    assert march_rows["n_respondents"].notna().all()
+    assert non_march_rows["survey_score"].isna().all()
+    assert non_march_rows["n_respondents"].isna().all()
+
+
+def test_aggregate_to_parent_weighted_survey() -> None:
+    panel = pd.DataFrame(
+        {
+            "region_id": ["R1", "R1"],
+            "site_id": ["S1", "S1"],
+            "ou_code": ["OU1", "OU2"],
+            "date": pd.to_datetime(["2020-01-01", "2020-01-01"]),
+            "productivity": [100.0, 150.0],
+            "fte_operational": [10.0, 20.0],
+            "survey_score": [60.0, 80.0],
+            "n_respondents": [20.0, 10.0],
+        }
+    )
+
+    aggregated = aggregate_to_parent(panel, level="site")
+    assert len(aggregated) == 1
+
+    row = aggregated.iloc[0]
+    assert row["productivity"] == pytest.approx(250.0)
+    assert row["fte_operational"] == pytest.approx(30.0)
+    assert row["n_respondents"] == pytest.approx(30.0)
+    expected_weighted_score = (60.0 * 20.0 + 80.0 * 10.0) / 30.0
+    assert row["survey_score"] == pytest.approx(expected_weighted_score)
+
+
+def test_aggregate_to_parent_handles_missing_survey_data() -> None:
+    panel = pd.DataFrame(
+        {
+            "region_id": ["R1", "R1"],
+            "site_id": ["S1", "S1"],
+            "ou_code": ["OU1", "OU2"],
+            "date": pd.to_datetime(["2020-01-01", "2020-01-01"]),
+            "productivity": [10.0, 20.0],
+            "fte_operational": [5.0, 7.0],
+            "survey_score": [np.nan, np.nan],
+            "n_respondents": [np.nan, np.nan],
+        }
+    )
+
+    aggregated = aggregate_to_parent(panel, level="region")
+    assert len(aggregated) == 1
+
+    row = aggregated.iloc[0]
+    assert np.isnan(row["survey_score"])
+    assert np.isnan(row["n_respondents"])
+    assert row["productivity"] == pytest.approx(30.0)
+    assert row["fte_operational"] == pytest.approx(12.0)
