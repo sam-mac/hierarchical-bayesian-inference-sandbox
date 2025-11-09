@@ -1,0 +1,112 @@
+digraph {
+	mu_x [label="mu_x
+~
+Normal" shape=ellipse]
+	corr_alpha_beta [label="corr_alpha_beta
+~
+Deterministic" shape=box]
+	sigma_y [label="sigma_y
+~
+Halfnormal" shape=ellipse]
+	mu_beta [label="mu_beta
+~
+Normal" shape=ellipse]
+	sigma_x [label="sigma_x
+~
+Halfnormal" shape=ellipse]
+	beta_global [label="beta_global
+~
+Deterministic" shape=box]
+	sigma_meas_base [label="sigma_meas_base
+~
+Halfnormal" shape=ellipse]
+	sigma_mu_x [label="sigma_mu_x
+~
+Halfnormal" shape=ellipse]
+	gamma_time_x [label="gamma_time_x
+~
+Normal" shape=ellipse]
+	mu_alpha [label="mu_alpha
+~
+Normal" shape=ellipse]
+	subgraph cluster3 {
+		L_ou [label="L_ou
+~
+_LKJCholeskyCov" shape=ellipse]
+		label=3 labeljust=r labelloc=b style=rounded
+	}
+	subgraph "cluster2 x 2" {
+		L_ou_corr [label="L_ou_corr
+~
+Deterministic" shape=box]
+		label="2 x 2" labeljust=r labelloc=b style=rounded
+	}
+	subgraph cluster2 {
+		L_ou_stds [label="L_ou_stds
+~
+Deterministic" shape=box]
+		label=2 labeljust=r labelloc=b style=rounded
+	}
+	subgraph "cluster12 x 2" {
+		z [label="z
+~
+Normal" shape=ellipse]
+		label="12 x 2" labeljust=r labelloc=b style=rounded
+	}
+	subgraph cluster12 {
+		mu_x_ou [label="mu_x_ou
+~
+Normal" shape=ellipse]
+		alpha_ou [label="alpha_ou
+~
+Deterministic" shape=box]
+		beta_ou [label="beta_ou
+~
+Deterministic" shape=box]
+		time_x_raw [label="time_x_raw
+~
+Normal" shape=ellipse]
+		time_raw [label="time_raw
+~
+Normal" shape=ellipse]
+		label=12 labeljust=r labelloc=b style=rounded
+	}
+	subgraph cluster144 {
+		x_latent [label="x_latent
+~
+Normal" shape=ellipse]
+		y_like [label="y_like
+~
+Normal" shape=ellipse style=filled]
+		label=144 labeljust=r labelloc=b style=rounded
+	}
+	subgraph cluster24 {
+		survey_obs [label="survey_obs
+~
+Normal" shape=ellipse style=filled]
+		label=24 labeljust=r labelloc=b style=rounded
+	}
+	L_ou -> L_ou_corr
+	L_ou -> L_ou_stds
+	z -> alpha_ou
+	mu_alpha -> alpha_ou
+	L_ou -> alpha_ou
+	z -> beta_ou
+	mu_beta -> beta_ou
+	L_ou -> beta_ou
+	sigma_mu_x -> mu_x_ou
+	mu_x -> mu_x_ou
+	gamma_time_x -> x_latent
+	time_x_raw -> x_latent
+	sigma_x -> x_latent
+	mu_x_ou -> x_latent
+	sigma_meas_base -> survey_obs
+	x_latent -> survey_obs
+	time_raw -> y_like
+	alpha_ou -> y_like
+	sigma_y -> y_like
+	x_latent -> y_like
+	beta_ou -> y_like
+	L_ou_corr -> corr_alpha_beta
+	mu_beta -> beta_global
+}
