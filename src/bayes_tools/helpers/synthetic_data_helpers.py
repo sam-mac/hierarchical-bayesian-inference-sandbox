@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 import numpy as np
 import pandas as pd
 
@@ -10,6 +12,7 @@ def make_hierarchical_ou_dataset(
     wave_months=(6, 12),
     wave_missing_prob: float = 0.1,  # chance a given OU skips a wave (simulate missingness)
     seed: int = 42,
+    panel_structure: Mapping[str, Mapping[str, int]] | None = None,
 ) -> pd.DataFrame:
     """
     Build a monthly hierarchical panel:
@@ -21,24 +24,59 @@ def make_hierarchical_ou_dataset(
     Columns:
       region_id, site_id, ou_code, date, productivity, fte_operational,
       survey_score, n_respondents
+    Args:
+        panel_structure: Optional explicit hierarchy specifying the number of
+            operating units (OUs) per site. The mapping should follow the
+            structure {region_id: {site_id: ou_count}}. When provided, the
+            ``n_regions``, ``n_sites_per_region`` and ``n_ous_per_site``
+            parameters are ignored.
     """
     rng = np.random.default_rng(seed)
     months = pd.date_range("2020-01-01", periods=12 * n_years, freq="MS")
     wave_mask = np.isin(months.month, list(wave_months))
 
+    if panel_structure is None:
+        structure: dict[str, dict[str, int]] = {
+            f"R{r}": {f"S{r}-{s}": n_ous_per_site for s in range(1, n_sites_per_region + 1)}
+            for r in range(1, n_regions + 1)
+        }
+    else:
+        structure = {
+            region_id: {site_id: int(count) for site_id, count in sites.items()}
+            for region_id, sites in panel_structure.items()
+        }
+
+    # Validate the requested structure.
+    if not structure:
+        msg = "panel_structure must define at least one region"
+        raise ValueError(msg)
+
+    for region_id, sites in structure.items():
+        if not sites:
+            msg = f"Region '{region_id}' must define at least one site"
+            raise ValueError(msg)
+        for site_id, ou_count in sites.items():
+            if ou_count < 1:
+                msg = f"Site '{site_id}' must specify at least one OU"
+                raise ValueError(msg)
+
     # Group-level effects (log scale so effects multiply on original scale)
-    region_eff = {f"R{r+1}": rng.normal(0.0, 0.10) for r in range(n_regions)}
-    site_eff = {}  # nested inside regions
+    region_eff = {
+        region_id: rng.normal(0.0, 0.10)
+        for region_id in structure
+    }
+    site_eff: dict[str, float] = {}
     data = []
 
-    for r in range(1, n_regions + 1):
-        region_id = f"R{r}"
-        for s in range(1, n_sites_per_region + 1):
-            site_id = f"S{r}-{s}"
+    for r_index, (region_id, sites) in enumerate(structure.items(), start=1):
+        for s_index, (site_id, ou_count) in enumerate(sites.items(), start=1):
             site_eff[site_id] = rng.normal(0.0, 0.08)
 
-            for u in range(1, n_ous_per_site + 1):
-                ou_code = f"OU{r}-{s}-{u}"
+            for u_index in range(1, ou_count + 1):
+                if panel_structure is None:
+                    ou_code = f"OU{r_index}-{s_index}-{u_index}"
+                else:
+                    ou_code = f"{site_id}-OU{u_index}"
 
                 # OU-specific baseline and drift
                 base_level = rng.normal(100, 20)  # baseline productivity level

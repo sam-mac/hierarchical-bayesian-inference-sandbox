@@ -33,6 +33,61 @@ def test_make_hierarchical_ou_dataset_reproducible() -> None:
     pd.testing.assert_frame_equal(df_one, df_two)
 
 
+def test_make_hierarchical_ou_dataset_default_structure_balanced() -> None:
+    n_regions = 2
+    n_sites_per_region = 2
+    n_ous_per_site = 3
+
+    panel = make_hierarchical_ou_dataset(
+        n_regions=n_regions,
+        n_sites_per_region=n_sites_per_region,
+        n_ous_per_site=n_ous_per_site,
+        n_years=1,
+        wave_missing_prob=0.0,
+        seed=7,
+    )
+
+    months = panel["date"].dt.to_period("M").nunique()
+    expected_ou = n_regions * n_sites_per_region * n_ous_per_site
+
+    assert len(panel) == expected_ou * months
+    assert panel["region_id"].nunique() == n_regions
+    assert panel.groupby("region_id")["site_id"].nunique().eq(n_sites_per_region).all()
+    assert panel.groupby("site_id")["ou_code"].nunique().eq(n_ous_per_site).all()
+
+
+def test_make_hierarchical_ou_dataset_imbalanced_structure() -> None:
+    panel_structure = {
+        "North": {"North-A": 1, "North-B": 3},
+        "South": {"South-A": 2},
+    }
+
+    panel = make_hierarchical_ou_dataset(
+        panel_structure=panel_structure,
+        n_years=1,
+        wave_missing_prob=0.0,
+        seed=5,
+    )
+
+    months = panel["date"].dt.to_period("M").nunique()
+    expected_ou = sum(count for sites in panel_structure.values() for count in sites.values())
+
+    assert len(panel) == expected_ou * months
+    assert set(panel["region_id"]) == set(panel_structure)
+
+    ou_counts = (
+        panel.groupby(["region_id", "site_id"])["ou_code"]
+        .nunique()
+        .to_dict()
+    )
+    expected_counts = {
+        (region_id, site_id): count
+        for region_id, sites in panel_structure.items()
+        for site_id, count in sites.items()
+    }
+    assert ou_counts == expected_counts
+
+
 def test_aggregate_to_parent_site_level(synthetic_panel: pd.DataFrame) -> None:
     aggregated = aggregate_to_parent(synthetic_panel, level="site")
     assert {"site_id", "date"}.issubset(aggregated.columns)
