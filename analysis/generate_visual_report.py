@@ -8,6 +8,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from PIL import Image
 from plotly.graph_objs import Figure
 
 from bayes_tools.helpers.synthetic_data_helpers import make_hierarchical_ou_dataset
@@ -17,6 +18,10 @@ from bayes_tools.helpers.visualisation_helpers import (
     plot_productivity_vs_survey,
     plot_survey_heatmap,
 )
+
+
+MAX_IMAGE_BYTES = 300_000
+"""Upper bound for exported chart assets to avoid bloated commits."""
 
 
 @dataclass(frozen=True)
@@ -53,6 +58,7 @@ def _export_figures(specs: Iterable[ChartSpec], output_dir: Path) -> list[Path]:
     for spec in specs:
         path = output_dir / spec.filename
         _render_plotly_with_matplotlib(spec.figure, path)
+        _constrain_png_size(path)
         output_paths.append(path)
     return output_paths
 
@@ -80,11 +86,13 @@ def _figures_to_markdown(
 
     figure_sections: list[str] = []
     for chart, image_path in zip(charts, image_paths, strict=True):
+        size_kb = image_path.stat().st_size / 1024
         figure_sections.extend(
             [
                 f"## {chart.title}",
                 "",
                 f"![{chart.title}]({image_path.name})",
+                f"> File size: {size_kb:.1f} KiB",
                 "",
             ]
         )
@@ -131,6 +139,38 @@ def _render_plotly_with_matplotlib(fig: Figure, path: Path) -> None:
         pil_kwargs={"optimize": True},
     )
     plt.close(plt_fig)
+
+
+def _constrain_png_size(path: Path, *, max_bytes: int = MAX_IMAGE_BYTES) -> None:
+    """Resample an image until its size stays below ``max_bytes``."""
+
+    try:
+        current_size = path.stat().st_size
+    except FileNotFoundError:
+        return
+    if current_size <= max_bytes:
+        return
+
+    with Image.open(path) as image:
+        image = _ensure_rgba(image)
+        image.save(path, optimize=True)
+        for _ in range(8):
+            if path.stat().st_size <= max_bytes:
+                break
+            new_width = max(1, int(image.width * 0.85))
+            new_height = max(1, int(image.height * 0.85))
+            if (new_width, new_height) == image.size:
+                break
+            image = image.resize((new_width, new_height), Image.LANCZOS)
+            image.save(path, optimize=True)
+
+
+def _ensure_rgba(image: Image.Image) -> Image.Image:
+    """Return an RGBA copy of ``image`` to preserve transparency information."""
+
+    if image.mode in {"RGB", "RGBA"}:
+        return image
+    return image.convert("RGBA")
 
 
 def _draw_heatmap(ax: plt.Axes, trace: object) -> None:
