@@ -1,4 +1,4 @@
-"""Generate synthetic hierarchical data and export a lightweight PDF report."""
+"""Generate synthetic hierarchical data and export a lightweight Markdown report."""
 
 from collections.abc import Iterable, Sequence
 import numpy as np
@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 import pandas as pd
 from plotly.graph_objs import Figure
 
@@ -58,18 +57,39 @@ def _export_figures(specs: Iterable[ChartSpec], output_dir: Path) -> list[Path]:
     return output_paths
 
 
-def _figures_to_pdf(image_paths: Sequence[Path], pdf_path: Path) -> None:
-    """Combine PNG images into a single PDF using Matplotlib."""
+def _figures_to_markdown(
+    charts: Sequence[ChartSpec],
+    image_paths: Sequence[Path],
+    markdown_path: Path,
+    *,
+    seed: int,
+    rows: int,
+) -> None:
+    """Write a Markdown report embedding the generated figures."""
 
-    with PdfPages(pdf_path) as pdf:
-        for image_path in image_paths:
-            image = plt.imread(image_path)
-            fig, ax = plt.subplots(figsize=(11.69, 8.27))  # A4 landscape
-            ax.imshow(image)
-            ax.axis("off")
-            fig.tight_layout(pad=0.1)
-            pdf.savefig(fig, bbox_inches="tight")
-            plt.close(fig)
+    heading = "# Synthetic Hierarchical Report"
+    metadata = [
+        heading,
+        "",
+        f"- Seed: `{seed}`",
+        f"- Rows: `{rows:,}`",
+        "",
+        "Generated visuals:",
+        "",
+    ]
+
+    figure_sections: list[str] = []
+    for chart, image_path in zip(charts, image_paths, strict=True):
+        figure_sections.extend(
+            [
+                f"## {chart.title}",
+                "",
+                f"![{chart.title}]({image_path.name})",
+                "",
+            ]
+        )
+
+    markdown_path.write_text("\n".join(metadata + figure_sections), encoding="utf-8")
 
 
 def _render_plotly_with_matplotlib(fig: Figure, path: Path) -> None:
@@ -104,7 +124,12 @@ def _render_plotly_with_matplotlib(fig: Figure, path: Path) -> None:
         ax.legend(loc="best")
 
     plt_fig.tight_layout()
-    plt_fig.savefig(path, bbox_inches="tight", dpi=120)
+    plt_fig.savefig(
+        path,
+        bbox_inches="tight",
+        dpi=110,
+        pil_kwargs={"optimize": True},
+    )
     plt.close(plt_fig)
 
 
@@ -257,7 +282,7 @@ def _looks_like_dates(values: Sequence[object]) -> bool:
 
 
 def build_report(output_dir: Path, *, seed: int = 42) -> dict[str, object]:
-    """Generate synthetic data, charts, and a consolidated PDF report."""
+    """Generate synthetic data, charts, and a Markdown report."""
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -311,23 +336,19 @@ def build_report(output_dir: Path, *, seed: int = 42) -> dict[str, object]:
     ]
 
     image_paths = _export_figures(charts, output_dir)
-    pdf_path = output_dir / "synthetic_report.pdf"
-    _figures_to_pdf(image_paths, pdf_path)
-
-    summary_path = output_dir / "README.txt"
-    summary = (
-        "Synthetic hierarchical dataset generated with default parameters.\n"
-        f"Seed: {seed}\n"
-        f"Data rows: {len(df):,}\n"
-        "Charts:\n" + "\n".join(f" - {chart.title} ({chart.filename})" for chart in charts)
+    markdown_path = output_dir / "synthetic_report.md"
+    _figures_to_markdown(
+        charts,
+        image_paths,
+        markdown_path,
+        seed=seed,
+        rows=len(df),
     )
-    summary_path.write_text(summary)
 
     return {
         "data": data_path,
-        "pdf": pdf_path,
+        "report": markdown_path,
         "images": tuple(image_paths),
-        "summary": summary_path,
     }
 
 
@@ -353,8 +374,7 @@ def main() -> None:
     args = parser.parse_args()
     outputs = build_report(args.output, seed=args.seed)
     print(f"Dataset saved to: {outputs['data']}")
-    print(f"Report PDF saved to: {outputs['pdf']}")
-    print(f"Summary saved to: {outputs['summary']}")
+    print(f"Markdown report saved to: {outputs['report']}")
 
 
 if __name__ == "__main__":
