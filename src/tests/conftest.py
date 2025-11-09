@@ -1,5 +1,5 @@
 import pandas as pd
-import pytest
+import pytest  # type: ignore
 
 from bayes_tools.helpers.synthetic_data_helpers import make_hierarchical_ou_dataset
 
