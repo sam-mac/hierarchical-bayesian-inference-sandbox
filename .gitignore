@@ -3,4 +3,6 @@ data
 **/__pycache__
 **/.DS_Store
 analysis/output/*
+analysis/output/**/
 !analysis/output/*.md
+!analysis/output/*.png
