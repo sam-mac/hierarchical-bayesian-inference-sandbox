@@ -1,51 +1,42 @@
 [project]
 name = "bayes-tools"
-version = "0.1.0"
-description = "Sandbox for practicing hierarchical Bayesian inference and statistical reporting"
+version = "0.2.0"
+description = "Hierarchical Bayesian LGSSM sandbox with NumPyro and Dynamax interoperability"
 authors = [{ name = "Samual MacDonald" }]
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.13"
 
-
 dependencies = [
-    "numpy",
-    "pandas",
-    "polars",
-    "matplotlib",
-    "arviz",
-    "pymc>=5.13",
-    "bambi",
-    "scipy",
-    "seaborn",
-    "tqdm",
-    "jupyter",
-    "plotly>=6.4.0",
+    "numpy>=2.1",
 ]
 
 [project.optional-dependencies]
+inference = [
+    "jax>=0.5",
+    "jaxlib>=0.5",
+    "numpyro>=0.16",
+    "dynamax>=1.0.1",
+]
 dev = [
-  "pytest",
-  "ipykernel",
-  "pre-commit"
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ipykernel",
+    "pre-commit",
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["src"]
-addopts = "-v"
+testpaths = ["tests"]
+addopts = "-v --strict-markers"
 pythonpath = ["src"]
-
 
 [tool.black]
 line-length = 88
-target-version = ['py313']
+target-version = ["py313"]
 
 [tool.ruff]
-# Python version used for parsing, and the line length Ruff should enforce
 target-version = "py313"
 line-length = 88
-
-# [tool.ruff.lint]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bayes_tools"]
