@@ -1,0 +1,136 @@
+{
+  "example": "identified_scalar_hierarchical_lgssm",
+  "settings": {
+    "groups": 4,
+    "train_timesteps": 100,
+    "heldout_timesteps": 20,
+    "chains": 4,
+    "warmup_per_chain": 1000,
+    "draws_per_chain": 1000,
+    "target_accept_probability": 0.95,
+    "chain_method": "sequential",
+    "jax_enable_x64": true,
+    "data_seed": 20261023,
+    "fit_seed": 17,
+    "predictive_seed": 29,
+    "known_process_std": [
+      0.4,
+      0.4,
+      0.4,
+      0.4
+    ],
+    "known_emission_std": [
+      0.2,
+      0.2,
+      0.2,
+      0.2
+    ],
+    "known_emission_loading": 1.0,
+    "initial_state_distribution": "Normal(0, 1)"
+  },
+  "mcmc": {
+    "divergences": 0,
+    "max_classical_split_rhat": 1.0030648652082037,
+    "min_numpyro_effective_sample_size": 1006.6168892059685,
+    "basic_screen_passed": true,
+    "nonfinite_diagnostics": false,
+    "screen": "finite split Rhat < 1.05, ESS >= 100, zero divergences at all reported sites",
+    "by_site": {
+      "transition": {
+        "max_split_rhat": 1.0003085075977383,
+        "min_effective_sample_size": 3216.721210010767
+      },
+      "transition_location": {
+        "max_split_rhat": 1.001958648410037,
+        "min_effective_sample_size": 1006.6168892059685
+      },
+      "transition_raw": {
+        "max_split_rhat": 1.0030648652082037,
+        "min_effective_sample_size": 1154.099510363878
+      },
+      "transition_scale": {
+        "max_split_rhat": 1.0010104041955934,
+        "min_effective_sample_size": 1031.1505539516145
+      }
+    }
+  },
+  "transition_recovery": [
+    {
+      "group": 0,
+      "true_transition": 0.35,
+      "posterior_median": 0.2690325796386931,
+      "equal_tailed_90_percent_interval": [
+        0.07478078015864861,
+        0.45996942281398956
+      ],
+      "truth_in_interval": true
+    },
+    {
+      "group": 1,
+      "true_transition": 0.5,
+      "posterior_median": 0.48427004871673973,
+      "equal_tailed_90_percent_interval": [
+        0.34107637760260745,
+        0.6214600499103946
+      ],
+      "truth_in_interval": true
+    },
+    {
+      "group": 2,
+      "true_transition": 0.65,
+      "posterior_median": 0.6635622732894519,
+      "equal_tailed_90_percent_interval": [
+        0.5366373989287179,
+        0.7888637348013872
+      ],
+      "truth_in_interval": true
+    },
+    {
+      "group": 3,
+      "true_transition": 0.8,
+      "posterior_median": 0.744481886115486,
+      "equal_tailed_90_percent_interval": [
+        0.6396583368509237,
+        0.8500670676803515
+      ],
+      "truth_in_interval": true
+    }
+  ],
+  "heldout_forecast": {
+    "n_observations": 80,
+    "covered_by_pointwise_90_percent_interval": 74,
+    "pointwise_90_percent_interval_coverage": 0.925,
+    "coverage_by_group": [
+      0.95,
+      0.8,
+      1.0,
+      0.95
+    ],
+    "rmse_of_posterior_predictive_mean": 0.5049063286554389,
+    "mean_marginal_log_predictive_density": -0.7629739953540218,
+    "mean_pointwise_interval_width": 1.778315764171543
+  },
+  "limitations": [
+    "One seeded synthetic dataset, not a repeated-simulation calibration study or real-data validation.",
+    "Known observation loading and noise scales: this does not validate joint recovery in the general unconstrained LGSSM.",
+    "Only four groups: population location/scale are weakly informed and have no declared generating truth here.",
+    "NumPyro classical split Rhat and ESS are basic screens, not rank-normalized bulk/tail diagnostics or proof of convergence.",
+    "Held-out points are serially correlated; descriptive pointwise coverage is not an independent-binomial calibration estimate.",
+    "The log score averages marginal forecast densities, not the joint density of each 20-step path.",
+    "Identical seeds fix inputs and PRNG streams, but different hardware/library versions may change floating-point trajectories."
+  ],
+  "environment": {
+    "python": "3.13.5",
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+    "jax_backend": "cpu",
+    "packages": {
+      "numpy": "2.3.4",
+      "pandas": "2.3.3",
+      "jax": "0.12.0.1",
+      "jaxlib": "0.12.0.1",
+      "numpyro": "0.22.0",
+      "dynamax": "1.0.3"
+    }
+  },
+  "elapsed_seconds": 66.291495037
+}
