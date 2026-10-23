@@ -9,7 +9,7 @@ The package is intentionally organized around a practical pipeline:
 """
 
 from bayes_tools.config import HierarchicalLGSSMConfig
-from bayes_tools.data.synthetic import SyntheticDataset, simulate_hierarchical_lgssm
+from bayes_tools.datasets.synthetic import SyntheticDataset, simulate_hierarchical_lgssm
 from bayes_tools.models.numpyro_hierarchical_lgssm import hierarchical_lgssm_model
 
 __all__ = [

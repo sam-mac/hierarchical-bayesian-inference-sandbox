@@ -21,3 +21,13 @@ def test_posterior_conversion_produces_diagonal_covariances() -> None:
     np.testing.assert_allclose(params.emission_covariance, np.diag([0.04]))
     np.testing.assert_allclose(params.initial_mean, np.zeros(2))
     np.testing.assert_allclose(params.initial_covariance, np.eye(2))
+
+
+def test_optional_dynamax_runtime_import() -> None:
+    import pytest
+
+    pytest.importorskip("dynamax")
+    from dynamax.linear_gaussian_ssm import LinearGaussianSSM
+
+    model = LinearGaussianSSM(state_dim=1, emission_dim=1)
+    assert model is not None

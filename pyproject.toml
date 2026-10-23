@@ -9,6 +9,7 @@ requires-python = ">=3.13"
 
 dependencies = [
     "numpy>=2.1",
+    "pandas>=2.2.3",
 ]
 
 [project.optional-dependencies]
@@ -42,7 +43,7 @@ line-length = 88
 packages = ["src/bayes_tools"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/bayes_tools", "README.md", "LICENSE"]
+include = ["src/bayes_tools", "tests", "examples", "README.md", "LICENSE", "uv.lock"]
 
 [build-system]
 requires = ["hatchling"]

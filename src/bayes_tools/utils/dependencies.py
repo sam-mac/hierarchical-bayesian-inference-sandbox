@@ -1,6 +1,6 @@
 """Optional dependency helpers."""
 
-import importlib
+import importlib.util
 
 
 def module_available(module_name: str) -> bool:

@@ -1,0 +1,27 @@
+name: Tests
+on:
+  push:
+  pull_request:
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        setup: [base, inference]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.13'
+          enable-cache: true
+      - name: Install base and test dependencies
+        if: matrix.setup == 'base'
+        run: uv sync --locked --extra dev
+      - name: Install inference and test dependencies
+        if: matrix.setup == 'inference'
+        run: uv sync --locked --extra dev --extra inference
+      - run: uv run --no-sync pytest
+      - name: Run fitted example with diagnostics
+        if: matrix.setup == 'inference'
+        run: uv run --no-sync python examples/fit_scalar_lgssm.py --strict
